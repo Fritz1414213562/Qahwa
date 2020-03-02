@@ -1,0 +1,11 @@
+#ifndef QAHWA_CORE
+#define QAHWA_CORE
+
+// filestream
+#include<Qahwa/filestream/dcd.hpp>
+#include<Qahwa/filestream/psf.hpp>
+#include<Qahwa/filestream/ninfo.hpp>
+
+
+
+#endif /* QAHWA_CORE */
