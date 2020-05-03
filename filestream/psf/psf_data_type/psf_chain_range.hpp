@@ -11,18 +11,18 @@ struct PSF_ChainRange {
 
 public:
 	PSF_ChainRange() = default;
-	PSF_ChainRange(const int& lhs, const int& rhs) : chain_range{lhs, rhs} {}
+	PSF_ChainRange(const std::size_t& lhs, const std::size_t& rhs) : chain_range{lhs, rhs} {}
 	~PSF_ChainRange() = default;
 
-	int begin_index() const {return chain_range[0];}
-	int& begin_index() {return chain_range[0];}
-	int end_index() const {return chain_range[1];}
-	int& end_index() {return chain_range[1];}
+	std::size_t begin_index() const {return chain_range[0];}
+	std::size_t& begin_index() {return chain_range[0];}
+	std::size_t end_index() const {return chain_range[1];}
+	std::size_t& end_index() {return chain_range[1];}
 
 	std::size_t size() const {return chain_range[1] - chain_range[0] + 1;}
 
 private:
-	std::array<int, 2> chain_range;
+	std::array<std::size_t, 2> chain_range;
 
 };
 
