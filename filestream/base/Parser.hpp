@@ -2,6 +2,7 @@
 #define QAHWA_PARSER_BASE_HPP
 #include<fstream>
 #include<vector>
+#include<iostream>
 #include<string>
 #include<type_traits>
 
@@ -19,7 +20,7 @@ public:
 	~FileParser() = default;
 
 	void open(const std::string& inputfile_name) {
-		input_name = inputfile_name;
+		load(inputfile_name);
 		open();
 	}
 
@@ -39,6 +40,10 @@ protected:
 			std::exit(1);
 		}
 	}
+
+
+	void load(const std::string& file_name) {input_name = file_name;}
+
 
 
 private:
