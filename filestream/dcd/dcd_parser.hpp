@@ -8,6 +8,9 @@
 // includes
 
 #include<Qahwa/filestream/base/Parser.hpp>
+#include<Qahwa/filestream/dcd/dcd_data_type/dcd_1stheader.hpp>
+#include<Qahwa/filestream/dcd/dcd_data_type/dcd_2ndheader.hpp>
+#include<Qahwa/filestream/dcd/dcd_data_type/dcd_3rdheader.hpp>
 #include<iostream>
 #include<fstream>
 #include<vector>
@@ -35,7 +38,13 @@ protected :
 	std::size_t frame_num = 0;
 	std::size_t atom_num = 0;
 
-	std::vector<std::string> headers;
+	DCD_1stHeader dcd_header1;
+	DCD_2ndHeader dcd_header2;
+	DCD_3rdHeader dcd_header3;
+
+	bool is_read_headers = false;
+
+
 	
 
 	std::array<std::vector<float>, 3> read_xyz() {
@@ -54,18 +63,97 @@ protected :
 	void read_num_frame_and_atom() {
 
 		open();
+		is_read_headers = true;
 		const std::string& first_block = read_block();
-		headers.push_back(first_block);
+		dcd_header1 = parse_1st_header(first_block);
 		read_frame_num(first_block);
 
 		const std::string& second_block = read_block();
-		headers.push_back(second_block);
+		dcd_header2 = parse_2nd_header(second_block);
 
 		const std::string& third_block = read_block();
-		headers.push_back(third_block);
 		read_atom_num(third_block);
+		dcd_header3 = parse_3rd_header();
 		std::cout << "frame number = " << frame_num << std::endl;
 		std::cout << "atom number = " << atom_num << std::endl;
+
+//		for (const std::string& header : headers) {
+//			std::cout << header << std::endl;
+//		}
+
+	}
+
+
+	DCD_1stHeader parse_1st_header(const std::string& block_1) {
+
+		const std::string& signature = {
+			read_binary_as<char>(&block_1.at(0)),
+			read_binary_as<char>(&block_1.at(1)),
+			read_binary_as<char>(&block_1.at(2)),
+			read_binary_as<char>(&block_1.at(3))
+		};
+		const int& nframes = read_binary_as<int>(&block_1.at(4));
+		const int& istart = read_binary_as<int>(&block_1.at(8));
+		const int& nstep_save = read_binary_as<int>(&block_1.at(12));
+		const int& nsteps = read_binary_as<int>(&block_1.at(16));
+		const int& nunits = read_binary_as<int>(&block_1.at(20));
+
+		const std::array<int, 4>& zero4 = {
+			read_binary_as<int>(&block_1.at(24)),
+			read_binary_as<int>(&block_1.at(28)),
+			read_binary_as<int>(&block_1.at(32)),
+			read_binary_as<int>(&block_1.at(36))
+		};
+
+		const float& delta = read_binary_as<float>(&block_1.at(40));
+		const std::array<int, 9>& zero9 = {
+			read_binary_as<int>(&block_1.at(44)),
+			read_binary_as<int>(&block_1.at(48)),
+			read_binary_as<int>(&block_1.at(52)),
+			read_binary_as<int>(&block_1.at(56)),
+			read_binary_as<int>(&block_1.at(60)),
+			read_binary_as<int>(&block_1.at(64)),
+			read_binary_as<int>(&block_1.at(68)),
+			read_binary_as<int>(&block_1.at(72)),
+			read_binary_as<int>(&block_1.at(76))
+		};
+
+		const int& version = read_binary_as<int>(&block_1.at(80));
+
+		DCD_1stHeader retval(signature, nframes, istart, nstep_save, nsteps, nunits, zero4, delta, zero9, version);
+		return retval;
+	}
+
+
+	DCD_2ndHeader parse_2nd_header(const std::string& block_2) {
+
+		const int& nline = read_binary_as<int>(&block_2.at(0));
+
+		std::string s_tempk;
+		for (std::size_t idx = 0; idx < 80; ++idx)
+			s_tempk += read_binary_as<char>(&block_2.at(164 + idx));
+
+		float tempk = std::stof(s_tempk);
+
+		std::vector<int> unit_size(nline - 3);
+
+		for (int iunit = 0; iunit < (nline - 3); ++iunit) {
+			std::string buffer;
+			for (std::size_t idx = 0; idx < 80; ++idx) {
+				buffer += read_binary_as<char>(&block_2.at(244 + 80 * iunit + idx));
+			}
+			unit_size[iunit] = std::stoi(buffer);
+		}
+
+		DCD_2ndHeader retval(nline, tempk, unit_size);
+		return retval;
+	}
+
+
+	DCD_3rdHeader parse_3rd_header() {
+
+		DCD_3rdHeader retval(atom_num);
+		return retval;
 
 	}
 
@@ -98,6 +186,7 @@ private:
 			std::exit(1);
 		}
 	
+//		std::cout << block_size << std::endl;
 		const std::string result(buffer.begin(), buffer.end());
 	
 		return result;

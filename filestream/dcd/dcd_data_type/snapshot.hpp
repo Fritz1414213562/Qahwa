@@ -89,6 +89,43 @@ public:
 
 
 
+	std::array<realT, Dim> center() const {
+		std::array<realT, Dim> result;
+		const realT& f_atom_size = static_cast<realT>(atom_num);
+		
+		for (std::size_t i_atom = 0; i_atom < atom_num; ++i_atom)
+			for (std::size_t i_dim = 0; i_dim < Dim; ++i_dim)
+				result[i_dim] += snap_shot[i_dim][i_atom];
+
+		for (std::size_t i_dim = 0; i_dim < Dim; ++i_dim)
+			result[i_dim] /= f_atom_size;
+
+		return result;
+	}
+
+
+//	template<typename IndexT, class = typename std::enable_if<std::is_integral<IndexT>::value>::type>
+//	std::array<realT, Dim> center(const std::vector<IndexT>& atom_ids) const {
+	std::array<realT, Dim> center(const std::vector<std::size_t>& atom_ids) const {
+		std::array<realT, Dim> result = {0, 0, 0};
+		const realT& f_atom_size = static_cast<realT>(atom_ids.size());
+	//	std::cout << f_atom_size << std::endl;
+
+	//	for (const IndexT& atom_id : atom_ids)
+		for (const std::size_t& atom_id : atom_ids)
+			for (std::size_t i_dim = 0; i_dim < Dim; ++i_dim)
+				result[i_dim] += snap_shot[i_dim][atom_id];
+				
+
+		for (std::size_t i_dim = 0; i_dim < Dim; ++i_dim) {
+			result[i_dim] /= f_atom_size;
+	//		std::cout << result[i_dim] << std::endl;
+		}
+
+		return result;
+	}
+
+
 //	Snapshot& operator=(std::array<std::vector<realT>, Dim> stl_snapshot) {
 //		Snapshot<realT, Dim> result(stl_snapshot);
 //		return result;

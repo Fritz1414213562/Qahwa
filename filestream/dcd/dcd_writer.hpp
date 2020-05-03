@@ -1,132 +1,196 @@
-#ifndef DCD_WRITER_HPP
-#define DCD_WRITER_HPP
-#include"DCDParser.hpp"
-#include<Eigen/Core>
-#include<BestFitFunction.hpp>
-#include<iostream>
-#include<fstream>
-#include<vector>
+#ifndef QAHWA_DCD_WRITER_HPP
+#define QAHWA_DCD_WRITER_HPP
+#include<Qahwa/filestream/base/Writer.hpp>
+#include<Qahwa/filestream/dcd/dcd_data_type/snapshot.hpp>
 #include<string>
+#include<iostream>
+#include<sstream>
+#include<iomanip>
 #include<tuple>
+#include<type_traits>
+#include<vector>
+#include<array>
 
 
-namespace cafemol {
+namespace Qahwa {
 
-class DCDWriter : public DCDParser {
+template<typename T>
+using is_array4dcd_writing = std::disjunction<
+	std::is_same<T, std::array<char, 4>>,
+	std::is_same<T, std::array<char, 80>>,
+	std::is_same<T, std::array<int, 4>>,
+	std::is_same<T, std::array<int, 9>>>;
+
+
+
+class DCDWriter : public FileWriter {
+
 
 public:
-	
-	DCDWriter(const std::string& output_file_name);
-	DCDWriter(const std::string& output_file_name, const std::string& input_file_name);
+	DCDWriter(const std::string& output_file_name) : FileWriter(output_file_name) {}
 
-	void best_fit_convert(int& istart, int& nstep_save, int& number_of_steps, int& number_of_units, float& delta, int& version);
+	DCDWriter() : FileWriter() {}
+
+	~DCDWriter() = default;
 
 
-	// test
-	void copy_DCD(int& istart, int& nstep_save, int& number_of_steps, int& number_of_units, float& delta, int& version);
+	void write_1st_block(int& nframes, int& istart, int& nstep_save, int& nsteps, int& nunits, float& delta) {
+		write_block(signature, nframes, istart, nstep_save, nsteps, nunits, zero_4times, delta, zero_9times, version);
+	}
+
+
+	void write_2nd_block(std::vector<int>& chain_lengths, float& tempk) {
+
+		int block_size = sizeof(int) + (3 + chain_lengths.size()) * 80;
+	//	std::cout << block_size << std::endl;
+		write_binary(block_size);
+		int nlines = 3 + chain_lengths.size();
+		write_binary(nlines);
+
+		std::array<char, 80> title0 = convert_Str2Arr<80>(CafeMol_code);
+		write_binary(title0);
+		std::array<char, 80> title1 = convert_Str2Arr<80>(Developer_name);
+		write_binary(title1);
+
+		std::stringstream buffer;
+		buffer
+			<< std::right << std::setw(21) << std::setprecision(prec) << std::fixed << tempk
+			<< "                                                           ";
+		std::array<char, 80> tempk_title = convert_Str2Arr<80>(buffer.str());
+		write_binary(tempk_title);
+
+		for (std::size_t i_chain = 0; i_chain < chain_lengths.size(); ++i_chain) {
+			std::stringstream chain_length_buffer;
+			chain_length_buffer
+				<< std::right << std::setw(6) << chain_lengths[i_chain]
+				<< "                                                                          ";
+			std::array<char, 80> chain_length = convert_Str2Arr<80>(chain_length_buffer.str());
+			write_binary(chain_length);
+		}
+
+		write_binary(block_size);
+	//	std::cout << block_size << std::endl;
+	}
+
+
+	void write_3rd_block(int& natoms) {write_block(natoms);}
+
+
+	template<typename realT, std::size_t Dim>
+	void write_body(Snapshot<realT, Dim> snap) {
+		int block_size = static_cast<int>(snap.size()) * sizeof(realT);
+
+		for (std::size_t i_dim = 0; i_dim < Dim; ++i_dim) {
+			write_binary(block_size);
+			for (std::size_t i_atom = 0; i_atom < snap.size(); ++i_atom)
+				write_binary(snap(i_dim, i_atom));
+
+			write_binary(block_size);
+		}
+
+	}
+
 
 private:
 
-	enum BLOCK_SIZES {
-		// block size
-		first_block_size = 84,
-		second_block_size = 324,
-		third_block_size = 4,
 
-		// block unit
-	};
+	template<typename... Types>
+	void write_block(Types&... arguments) {
+		std::tuple<Types...> args_tup = std::make_tuple(arguments...);
 
-	char block_char = '=';
-	char block_space = ' ';
-	char CORD_C = 'C';
-	char CORD_O = 'O';
-	char CORD_R = 'R';
-	char CORD_D = 'D';
-	int i_zero = 0;
-	int block_unit = 4;
+	//	constexpr int tuple_elem_size = count_TupleElementSize(args_tup);
+		int tuple_elem_size = count_TupleElementSize(args_tup);
 
-	std::string output_name;
+	//	std::cout << tuple_elem_size << std::endl;
 
-	cafemol::library::Best_Fit_Performer best_fit = cafemol::library::Best_Fit_Performer();
+		write_binary(tuple_elem_size);
+		iterate_binary(args_tup);
+		write_binary(tuple_elem_size);
 
-// implement in cpp file
+	}
 
-	void write_Body(std::ofstream& ofs, std::array<std::vector<float>, 3>& xyz);
 
-	void write_Body(std::ofstream& ofs, Eigen::Matrix<float, Eigen::Dynamic, 3>& xyz);
 
-// inline function
+private:
+
+
+	template<std::size_t I = 0, typename tupleT>
+	void iterate_binary(tupleT& tup) {
+		if constexpr ((I >= 0) && (I < std::tuple_size<tupleT>::value)) {
+			write_binary(std::get<I>(tup));
+			iterate_binary<I + 1>(tup);
+		}
+	}
+
 
 	template<typename T>
-	void write_Binary(T& value, std::ofstream& ofs) {
-		ofs.write(reinterpret_cast<char*>(&value), sizeof(T));
+	void write_binary(T& value) {
+		if constexpr (is_array4dcd_writing<T>::value)
+			iterate_array(value);
+		else if constexpr (!is_array4dcd_writing<T>::value)
+			output_file.write(reinterpret_cast<char*>(&value), sizeof(T));
 	}
 
-
-	template<std::size_t iterative_num = 0, typename Tuple_Type>
-	void iterate_Binary(Tuple_Type& Tuple, std::ofstream& ofs) {
-		if constexpr ((iterative_num >= 0) && (iterative_num < std::tuple_size<Tuple_Type>::value)) {
-			ofs.write(reinterpret_cast<char*>(&std::get<iterative_num>(Tuple)), sizeof(std::get<iterative_num>(Tuple)));
-			iterate_Binary<iterative_num + 1>(Tuple, ofs);
+	template<std::size_t I = 0, typename T, std::size_t Len>
+	void iterate_array(std::array<T, Len>& arr) {
+		if constexpr ((I >= 0) && (I < Len)) {
+			output_file.write(reinterpret_cast<char*>(&std::get<I>(arr)), sizeof(T));
+			iterate_array<I + 1>(arr);
 		}
 	}
 
 
-//	template<BLOCK_SIZES block_number, typename ...Types>
-	template<typename ...Types>
-	void write_Block(std::ofstream& ofs, Types& ...arguments) {
-
-		std::tuple<Types...> args_tuple = std::make_tuple(arguments...);
-		// calculate the total type size of tuple elements
-//		constexpr int tuple_elements_size = count_TupleElementsSize(args_tuple);
-		int tuple_elements_size = count_TupleElementsSize(args_tuple);
-		// check the block_size
-//		static_assert(block_number == tuple_elements_size, "Block size is not consistent with tuple elements size");
-
-		std::cout << tuple_elements_size << std::endl;
-		// block_size
-		write_Binary(tuple_elements_size, ofs);
-		// write body of the block
-		iterate_Binary(args_tuple, ofs);
-		// check-block size
-		write_Binary(tuple_elements_size, ofs);
+	template<typename T>
+	constexpr int element_size_of(T& elem) {
+		if constexpr (is_array4dcd_writing<T>::value)
+			return sizeof(typename std::tuple_element<0, T>::type) * std::tuple_size<T>::value;
+		else if constexpr (!is_array4dcd_writing<T>::value)
+			return sizeof(T);
 	}
 
 
-	// compile-time methods
+	template<std::size_t I = 0, typename tupleT>
+	constexpr int count_TupleElementSize(tupleT& tup) {
+		static_assert((0 <= I) || (I < std::tuple_size<tupleT>::value), "Iteration number is out of tuple range");
+		
+		if constexpr (I == std::tuple_size<tupleT>::value - 1)
+			return element_size_of(std::get<I>(tup));
+		else if constexpr (I < std::tuple_size<tupleT>::value - 1)
+			return element_size_of(std::get<I>(tup)) + count_TupleElementSize<I + 1>(tup);
+	}
 
-	template<std::size_t iterative_num = 0, typename Tuple_Type>
-	constexpr int count_TupleElementsSize(Tuple_Type& Tuple) {
 
-		static_assert((0 <= iterative_num) || (iterative_num < std::tuple_size<Tuple_Type>::value), "Invalid Index, out of tuple range");
-
-		if constexpr (iterative_num == std::tuple_size<Tuple_Type>::value - 1) {
-			return sizeof(std::get<iterative_num>(Tuple));
+	template<std::size_t N>
+	std::array<char, N> convert_Str2Arr(const std::string& input_string) {
+		if (input_string.size() != N) {
+			std::cerr << "String length is not " << N << std::endl;
+			std::exit(1);
 		}
-		else if constexpr (iterative_num < std::tuple_size<Tuple_Type>::value - 1) {
-			return sizeof(std::get<iterative_num>(Tuple)) + count_TupleElementsSize<iterative_num + 1>(Tuple);
-		}
+		std::array<char, N> result;
+
+		for (std::size_t i_str = 0; i_str < N; ++i_str)
+			result[i_str] = input_string[i_str];
+
+		return result;
 	}
+	
+
+private:
+	std::array<char, 4> signature = {'C', 'O', 'R', 'D'};
+	std::array<int, 4> zero_4times = {0, 0, 0, 0};
+	std::array<int, 9> zero_9times = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+	std::string CafeMol_code = 
+	  "==================== Molecular Dynamics Code : CafeMol ver.  2.01.1500 =========";
+	std::string Developer_name =
+	  "==================== Developed by Kyoto University =============================";
+
+	int prec = 14;
+	int version = 24;
 
 
-	// for writing each block
-	void write_1stBlock(std::ofstream& ofs, int& frame_number, int& istart, int& nstep_save, int& number_of_steps, int& number_of_units, float& delta, int& version) {
-//	void write_1stBlock(std::ofstream& ofs, const int& frame_number, const int& istart, const int& nstep_save, const int& number_of_steps, const int& number_of_units, const float& delta, const int& version);
-		write_Block(ofs, CORD_C, CORD_O, CORD_R, CORD_D, frame_number, istart, nstep_save, number_of_steps, number_of_units, i_zero, i_zero, i_zero, i_zero, delta, i_zero, i_zero, i_zero, i_zero, i_zero, i_zero, i_zero, i_zero, i_zero, version);
-	}
-
-	void write_2ndBlock(std::ofstream& ofs) {
-//	void write_2ndBlock(std::ofstream& ofs);
-		write_Block(ofs, block_unit, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char, block_char);
-	}
-
-	void write_3rdBlock(std::ofstream& ofs, int& atom_number) {
-//	void write_3rdBlock(std::ofstream& ofs,  int& atom_number);
-		write_Block(ofs, atom_number);
-	}
-
-//
 };
+
 }
 
-#endif /* DCD_WRITER_HPP */
+
+#endif /* QAHWA_DCD_WRITER_HPP */
