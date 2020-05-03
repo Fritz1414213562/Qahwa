@@ -15,22 +15,23 @@ template<Ninfo_ReadStyle STYLE_FLAG>
 class NinfoReader : public NinfoParser<STYLE_FLAG> {
 
 public:
-	NinfoReader() : NinfoParser() {}
-	NinfoReader(const std::string& input_file_name) : NinfoParser(input_file_name) {}
+	NinfoReader() : NinfoParser<STYLE_FLAG>() {}
+	NinfoReader(const std::string& input_file_name) : NinfoParser<STYLE_FLAG>(input_file_name) {}
 	~NinfoReader() = default;
 
 
-	NativeInfo read_NativeInfo() const {
-		open();
+	NativeInfo read_NativeInfo() {
+
+		this->open();
 
 		NativeInfo result;
 
 		std::string buffer;
-		while (std::getline(input_file, buffer)) {
+		while (std::getline(this->input_file, buffer)) {
 
 			if (buffer.size() < 4 || buffer == ">>>>" || buffer == "<<<<") continue;
 
-			const std::vector<std::string>& words = split_Line(buffer);
+			const std::vector<std::string>& words = this->split_Line(buffer);
 			if (words.empty()) continue;
 			else if (words[0] == "bond") {
 				result.add_BondLine(

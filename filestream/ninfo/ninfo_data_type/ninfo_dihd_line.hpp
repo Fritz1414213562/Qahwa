@@ -55,7 +55,7 @@ public:
 		dihd_type = std::get<16>(args_tuple);
 	}
 
-	~Ninfo_DihdLine = default;
+	~Ninfo_DihdLine() = default;
 
 	std::string kind() const {return line_kind;}
 

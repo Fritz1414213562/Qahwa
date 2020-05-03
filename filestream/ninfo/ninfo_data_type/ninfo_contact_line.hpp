@@ -45,7 +45,7 @@ public:
 		contact_type = std::get<11>(args_tuple);
 	}
 
-	~Ninfo_ContactLine = default;
+	~Ninfo_ContactLine() = default;
 
 	std::string kind() const {return line_kind;}
 
@@ -76,8 +76,8 @@ public:
 	float factor() const {return factor_go;}
 	float& factor() {return factor_go;}
 
-	float dummy() const {return dummy_number;}
-	float& dummy() {return dummy_number;}
+	std::size_t dummy() const {return dummy_number;}
+	std::size_t& dummy() {return dummy_number;}
 
 	float coef() const {return coefficient;}
 	float& coef() {return coefficient;}

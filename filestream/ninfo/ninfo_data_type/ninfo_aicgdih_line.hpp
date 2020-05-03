@@ -55,7 +55,7 @@ public:
 		aicgdih_type = std::get<16>(args_tuple);
 	}
 
-	~Ninfo_AICGDihLine = default;
+	~Ninfo_AICGDihLine() = default;
 
 	std::string kind() const {return line_kind;}
 

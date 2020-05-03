@@ -30,14 +30,14 @@ public:
 		serial_number = std::get<0>(args_tuple);
 		unit_number = std::get<1>(args_tuple);
 		mass_point = std::get<2>(args_tuple);
-		local_mp = std::get<3>(args_tuple);
+		local_mass_point = std::get<3>(args_tuple);
 		pdns_contact_length = std::get<4>(args_tuple);
 		pdns_angle_NC = std::get<5>(args_tuple);
 		pdns_angle_SB = std::get<6>(args_tuple);
 		coefficient = std::get<7>(args_tuple);
 	}
 
-	~Ninfo_PDNSLine = default;
+	~Ninfo_PDNSLine() = default;
 
 	std::string kind() const {return line_kind;}
 
@@ -50,8 +50,8 @@ public:
 	std::size_t global_mp() const {return mass_point;}
 	std::size_t& global_mp() {return mass_point;}
 
-	std::size_t local_mp() const {return local_mp;}
-	std::size_t& local_mp() {return local_mp;}
+	std::size_t local_mp() const {return local_mass_point;}
+	std::size_t& local_mp() {return local_mass_point;}
 
 	float pdns_length() const {return pdns_contact_length;}
 	float& pdns_length() {return pdns_contact_length;}
@@ -72,7 +72,7 @@ private:
 	std::size_t serial_number;
 	std::size_t unit_number;
 	std::size_t mass_point;
-	std::size_t local_mp;
+	std::size_t local_mass_point;
 	float pdns_contact_length;
 	float pdns_angle_NC;
 	float pdns_angle_SB;

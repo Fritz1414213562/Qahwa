@@ -20,14 +20,22 @@ public:
 
 protected:
 	
-	std::vector<std::string> split_Line(const std::string& line);
+	std::vector<std::string> split_Line(const std::string& line) const;
 
 private:
 
 	const char& delim = ' ';
 	const std::string& empty_line_type = "";
+	const std::string& block_name_bond = "bond";
+	const std::string& block_name_angl = "angl";
+	const std::string& block_name_aicg13 = "aicg13";
+	const std::string& block_name_dihd = "dihd";
+	const std::string& block_name_aicgdih = "aicgdih";
+	const std::string& block_name_contact = "contact";
+	const std::string& block_name_pdns = "pdns";
 
-	std::vector<std::string> split_BondLine(const std::string& line) {
+
+	std::vector<std::string> split_BondLine(const std::string& line) const {
 		std::vector<std::string> result;
 
 		result.push_back(read_PartialLine<BOND_NAME_BEGIN, BOND_NAME_END>(line));
@@ -52,7 +60,7 @@ private:
 	}
 
 
-	std::vector<std::string> split_AnglLine(const std::string& line) {
+	std::vector<std::string> split_AnglLine(const std::string& line) const {
 		std::vector<std::string> result;
 
 		result.push_back(read_PartialLine<ANGL_NAME_BEGIN, ANGL_NAME_END>(line));
@@ -79,7 +87,7 @@ private:
 	}
 
 
-	std::vector<std::string> split_AICG13Line(const std::string& line) {
+	std::vector<std::string> split_AICG13Line(const std::string& line) const {
 		std::vector<std::string> result;
 
 		result.push_back(read_PartialLine<AICG13_NAME_BEGIN, AICG13_NAME_END>(line));
@@ -107,7 +115,7 @@ private:
 	}
 
 
-	std::vector<std::string> split_DihdLine(const std::string& line) {
+	std::vector<std::string> split_DihdLine(const std::string& line) const {
 		std::vector<std::string> result;
 
 		result.push_back(read_PartialLine<DIHD_NAME_BEGIN, DIHD_NAME_END>(line));
@@ -137,7 +145,7 @@ private:
 	}
 
 
-	std::vector<std::string> split_AICGDihLine(const std::string& line) {
+	std::vector<std::string> split_AICGDihLine(const std::string& line) const {
 		std::vector<std::string> result;
 
 		result.push_back(read_PartialLine<AICGDIH_NAME_BEGIN, AICGDIH_NAME_END>(line));
@@ -167,7 +175,7 @@ private:
 	}
 
 
-	std::vector<std::string> split_ContactLine(const std::string& line) {
+	std::vector<std::string> split_ContactLine(const std::string& line) const {
 		std::vector<std::string> result;
 
 		result.push_back(read_PartialLine<CONTACT_NAME_BEGIN, CONTACT_NAME_END>(line));
@@ -192,7 +200,7 @@ private:
 	}
 
 
-	std::vector<std::string> split_PDNSLine(const std::string& line) {
+	std::vector<std::string> split_PDNSLine(const std::string& line) const {
 		std::vector<std::string> result;
 
 		result.push_back(read_PartialLine<PDNS_NAME_BEGIN, PDNS_NAME_END>(line));
@@ -211,7 +219,7 @@ private:
 
 
 	template<NINFO_COLUMN_MEANINGS begin_index, NINFO_COLUMN_MEANINGS end_index>
-	std::string read_PartialLine(const std::string& line) {
+	std::string read_PartialLine(const std::string& line) const {
 		constexpr std::size_t parse_length = end_index - begin_index + 1;
 		return line.substr(begin_index, parse_length);
 	}
@@ -229,25 +237,25 @@ inline std::vector<std::string> NinfoParser<NINFO_SPC_SPL>::split_Line(const std
 template<>
 inline std::vector<std::string> NinfoParser<NINFO_COL_SPL>::split_Line(const std::string& line) const {
 	std::vector<std::string> result;
-	if (read_PartialLine<BOND_NAME_BEGIN, BOND_NAME_END> == "bond") {
+	if (read_PartialLine<BOND_NAME_BEGIN, BOND_NAME_END>(line) == block_name_bond) {
 		result = split_BondLine(line);
 	}
-	else if (read_PartialLine<ANGL_NAME_BEGIN, ANGL_NAME_END> == "angl") {
+	else if (read_PartialLine<ANGL_NAME_BEGIN, ANGL_NAME_END>(line) == block_name_angl) {
 		result = split_AnglLine(line);
 	}
-	else if (read_PartialLine<AICG13_NAME_BEGIN, AICG13_NAME_END> == "aicg13") {
+	else if (read_PartialLine<AICG13_NAME_BEGIN, AICG13_NAME_END>(line) == block_name_aicg13) {
 		result = split_AICG13Line(line);
 	}
-	else if (read_PartialLine<DIHD_NAME_BEGIN, DIHD_NAME_END> == "dihd") {
+	else if (read_PartialLine<DIHD_NAME_BEGIN, DIHD_NAME_END>(line) == block_name_dihd) {
 		result = split_DihdLine(line);
 	}
-	else if (read_PartialLine<AICGDIH_NAME_BEGIN, AICGDIH_NAME_END> == "aicgdih") {
+	else if (read_PartialLine<AICGDIH_NAME_BEGIN, AICGDIH_NAME_END>(line) == block_name_aicgdih) {
 		result = split_AICGDihLine(line);
 	}
-	else if (read_PartialLine<CONTACT_NAME_BEGIN, CONTACT_NAME_END> == "contact") {
+	else if (read_PartialLine<CONTACT_NAME_BEGIN, CONTACT_NAME_END>(line) == block_name_contact) {
 		result = split_ContactLine(line);
 	}
-	else if (read_PartialLine<PDNS_NAME_BEGIN, PDNS_NAME_END> == "pdns") {
+	else if (read_PartialLine<PDNS_NAME_BEGIN, PDNS_NAME_END>(line) == block_name_pdns) {
 		result = split_PDNSLine(line);
 	}
 //	else {

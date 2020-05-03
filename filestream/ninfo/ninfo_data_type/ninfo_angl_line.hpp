@@ -49,7 +49,7 @@ public:
 		angl_type = std::get<13>(args_tuple);
 	}
 
-	~Ninfo_AnglLine = default;
+	~Ninfo_AnglLine() = default;
 
 	std::string kind() const {return line_kind;}
 

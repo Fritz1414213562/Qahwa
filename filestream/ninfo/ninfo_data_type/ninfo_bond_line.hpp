@@ -45,7 +45,7 @@ public:
 		bond_type = std::get<11>(args_tuple);
 	}
 
-	~Ninfo_BondLine = default;
+	~Ninfo_BondLine() = default;
 
 	std::string kind() const {return line_kind;}
 

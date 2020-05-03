@@ -43,7 +43,7 @@ public:
 		lhs_local_mp = std::get<6>(args_tuple);
 		mid_local_mp = std::get<7>(args_tuple);
 		rhs_local_mp = std::get<8>(args_tuple);
-		native_aicg13 = std::get<9>(args_tuple);
+		native_aicg13_length = std::get<9>(args_tuple);
 		factor_go = std::get<10>(args_tuple);
 		correct_mgo = std::get<11>(args_tuple);
 		coefficient = std::get<12>(args_tuple);
@@ -51,7 +51,7 @@ public:
 		aicg13_type = std::get<14>(args_tuple);
 	}
 
-	~Ninfo_AICG13Line = default;
+	~Ninfo_AICG13Line() = default;
 
 	std::string kind() const {return line_kind;}
 
@@ -82,8 +82,8 @@ public:
 	std::size_t local_mp3() const {return rhs_local_mp;}
 	std::size_t& local_mp3() {return rhs_local_mp;}
 
-	float native_aicg13() const {return native_aicg13;}
-	float& native_aicg13() {return native_aicg13;}
+	float native_aicg13() const {return native_aicg13_length;}
+	float& native_aicg13() {return native_aicg13_length;}
 
 	float factor() const {return factor_go;}
 	float& factor() {return factor_go;}
@@ -91,11 +91,11 @@ public:
 	float mgo() const {return correct_mgo;}
 	float& mgo() {return correct_mgo;}
 
-	float coef() const {return coefficient;}
-	float& coef() {return coefficient;}
+	float coef_aicg13() const {return coefficient;}
+	float& coef_aicg13() {return coefficient;}
 
-	float width() const {return width_gauss;}
-	float& width() const {return width_gauss;}
+	float coef_width() const {return width_gauss;}
+	float& coef_width() {return width_gauss;}
 
 	std::string type() const {return aicg13_type;}
 	std::string& type() {return aicg13_type;}
@@ -114,7 +114,7 @@ private:
 	std::size_t lhs_local_mp;
 	std::size_t mid_local_mp;
 	std::size_t rhs_local_mp;
-	float native_aicg13;
+	float native_aicg13_length;
 	float factor_go;
 	float correct_mgo;
 	float coefficient;
